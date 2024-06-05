@@ -168,7 +168,6 @@ myList = sorted(myList)
 
 print(word_counts)
 
-#создание линейной диаграммы
 
 #Лучший вариант подсчета количества появлений слов
 for y in mess2: #список сообщений
@@ -305,6 +304,7 @@ for y in mess3:
   value = str(sum)
   cell = sheet.cell(row=j, column=i)
   cell.value = value
+  print(value) #ЭТО ПРИЗНАК ТЕМЫ
 
   #СЧИТАЕТСЯ ФОРМУЛА
 k = j
