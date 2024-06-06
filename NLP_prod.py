@@ -1,0 +1,356 @@
+import re
+from string import punctuation
+from array import *
+import openpyxl
+import xlrd
+import numpy as np
+import math
+from matplotlib import pyplot as plt
+from collections import defaultdict
+from collections import Counter
+
+
+class Porter:
+	PERFECTIVEGROUND =  re.compile(u"((ив|ивши|ившись|ыв|ывши|ывшись)|((?<=[ая])(в|вши|вшись)))$")
+	REFLEXIVE = re.compile(u"(с[яь])$")
+	ADJECTIVE = re.compile(u"(ее|ие|ые|ое|ими|ыми|ей|ий|ый|ой|ем|им|ым|ом|его|ого|ему|ому|их|ых|ую|юю|ая|яя|ою|ею)$")
+	PARTICIPLE = re.compile(u"((ивш|ывш|ующ)|((?<=[ая])(ем|нн|вш|ющ|щ)))$")
+	VERB = re.compile(u"((ила|ыла|ена|ейте|уйте|ите|или|ыли|ей|уй|ил|ыл|им|ым|ен|ило|ыло|ено|ят|ует|уют|ит|ыт|ены|ить|ыть|ишь|ую|ю)|((?<=[ая])(ла|на|ете|йте|ли|й|л|ем|н|ло|но|ет|ют|ны|ть|ешь|нно)))$")
+	NOUN = re.compile(u"(а|ев|ов|ие|ье|е|иями|ями|ами|еи|ии|и|ией|ей|ой|ий|й|иям|ям|ием|ем|ам|ом|о|у|ах|иях|ях|ы|ь|ию|ью|ю|ия|ья|я)$")
+	RVRE = re.compile(u"^(.*?[аеиоуыэюя])(.*)$")
+	DERIVATIONAL = re.compile(u".*[^аеиоуыэюя]+[аеиоуыэюя].*ость?$")
+	DER = re.compile(u"ость?$")
+	SUPERLATIVE = re.compile(u"(ейше|ейш)$")
+	I = re.compile(u"и$")
+	P = re.compile(u"ь$")
+	NN = re.compile(u"нн$")
+
+	def stem(word):
+		word = word.lower()
+		word = word.replace(u'ё', u'е')
+		m = re.match(Porter.RVRE, word)
+		if m and m.groups():
+			pre = m.group(1)
+			rv = m.group(2)
+			temp = Porter.PERFECTIVEGROUND.sub('', rv, 1)
+			if temp == rv:
+				rv = Porter.REFLEXIVE.sub('', rv, 1)
+				temp = Porter.ADJECTIVE.sub('', rv, 1)
+				if temp != rv:
+					rv = temp
+					rv = Porter.PARTICIPLE.sub('', rv, 1)
+				else:
+					temp = Porter.VERB.sub('', rv, 1)
+					if temp == rv:
+						rv = Porter.NOUN.sub('', rv, 1)
+					else:
+						rv = temp
+			else:
+				rv = temp
+			
+			rv = Porter.I.sub('', rv, 1)
+
+			if re.match(Porter.DERIVATIONAL, rv):
+				rv = Porter.DER.sub('', rv, 1)
+
+			temp = Porter.P.sub('', rv, 1)
+			if temp == rv:
+				rv = Porter.SUPERLATIVE.sub('', rv, 1)
+				rv = Porter.NN.sub(u'н', rv, 1)
+			else:
+				rv = temp
+			word = pre+rv
+		return word
+	
+	#Porter fo list
+	def stem_list(list_mess):
+		b1 = []
+		list_mess.sort()
+		for x in list_mess:
+			b1.append(Porter.stem(x))
+		b1.sort()
+		return b1
+		
+	stem=staticmethod(stem)
+
+
+
+stopwords = [a for a in punctuation]
+stopwords.append('«')
+stopwords.append('»')
+stopwords2 = ['в', 'не', 'по', 'на', 'прош', 'и', 'при', 'с', 'добр', 'ден', 'для', 'к', 'нет', 'эт', 'как', 'из', 'о', 'у', 'а', 'от', ' ', 'ил', 'во', 'он', 'что', 'то', 'так', 'но', 'спасиб',]
+rb = xlrd.open_workbook('content/Data0406_.xls', formatting_info=True)
+sheet = rb.sheet_by_index(0)
+a = []
+b = []
+c = []
+d1 = [] #сообщения
+d2 = [] #ключи
+d3 = []
+keys = []
+mess = []
+
+#Формирование ключей из заявок за 3 мес
+keys2 = np.array([[],[]], float)
+keys3 = np.array([[],[]], float)
+keys4 = np.array([[],[]], float)
+mess2 = [] #список с заявками за 3 мес по нужному ИТ-реш
+mess3 = [] #список заявок ВСЕГО за три мес, поступивших на ИТ-реш
+
+mess_one = []
+k = 0
+for rownum in range(sheet.nrows):
+  row = sheet.row_values(rownum)
+  for c_el in row:
+    #print(c_el.split())
+    a.extend(c_el.split())
+    mess_one.extend(c_el.split())
+  mess2.append(mess_one)
+  k = k + 1
+  mess_one = []
+for y in mess2:
+  d3.append(Porter.stem_list(y))
+mess2.clear()
+mess2.extend(d3)
+d3.clear()
+
+a.sort()
+print(a)
+print(stopwords)
+for slovo in a:
+  b.append(Porter.stem(slovo))
+# СТОП СЛОВА
+for stopw2 in stopwords2:
+  while b.count(stopw2) != 0:
+    b.remove(stopw2)
+
+#Формирование ключей и весов
+
+i = 1
+j = 0
+wb_ = openpyxl.Workbook()
+ws_ = wb_.create_sheet(title = 'Test', index=0)
+sheet_ = wb_['Test']
+
+
+for x in b:
+  if c.count(x) == 0 and b.count(x) > 2 and len(x) > 1:
+    c.append(x)
+
+    value = str(b.count(x))
+    cell = sheet_.cell(row=i, column=1)
+    cell.value = value
+
+    value = str(mess2[1].count(x))
+    vell = sheet_.cell(row=i, column=3)
+    cell.value = value
+
+    value = str(x)
+    cell = sheet_.cell(row=i, column=4)
+    cell.value = value
+    i = i + 1
+
+wb_.save('content/SD2020.xlsx')
+
+
+#создать словаль
+word_counts = defaultdict(int) #int() возвращает 0
+for word in b:
+  word_counts[word] += 1
+#word_counts.items()
+word_counts2 = {key: val for key, val in word_counts.items() if val > 1}
+
+myList = word_counts2.items()
+myList = sorted(myList)
+#x, y = zip(*myList)
+
+
+
+print(word_counts)
+
+
+#Лучший вариант подсчета количества появлений слов
+for y in mess2: #список сообщений
+  word_counts = Counter(y)
+
+keys2 = np.zeros([(len(mess2)+1),(len(c)+3)],float)
+print(str(keys2.shape))
+d1 = []
+j = 3
+for y in mess2: #список сообщений
+  j = j + 1
+  i = 1
+  sum = 0
+
+  for x in c: #список всех стем
+    d2.append(y.count(x))
+    sum += y.count(x)
+
+    keys2[j-4, i-1] = y.count(x)
+    i = i + 1
+
+  keys2[j-4, i-1] = sum
+
+  d2.append(sum)
+  d1.append(d2)
+  d2.clear()
+
+k = j
+i = 0
+
+for x in c:
+  VAL = np.vstack((keys2[:,i],keys2[:,(len(c))]))
+  R_xy = np.corrcoef(VAL)
+  keys2[-1,i] = R_xy[1,0] #ЗАПОЛНЕНИЕ ВЕСОВ
+    #необходимо удалять ключи, в которых отрицательная корреляция
+  i = i + 1
+j = 0
+
+#ФОРМИРОВАНИЕ СООБЩЕНИЙ, МАТРИЦЫ, И ФОРМУЛЫ
+
+rb = xlrd.open_workbook('content/Messages.xls', formatting_info=True)
+sheet = rb.sheet_by_index(0)
+
+mess3.clear()
+mess_one.clear()
+k = 0
+for rownum in range(sheet.nrows):
+  row = sheet.row_values(rownum)
+  for c_el in row:
+    mess_one.extend(c_el.split())
+  mess3.append(mess_one)
+  k = k + 1
+  mess_one = []
+
+for y in mess3:
+  d3.append(Porter.stem_list(y))
+mess3.clear()
+mess3.extend(d3)
+
+wb = openpyxl.Workbook()
+ws = wb.create_sheet(title = 'Test', index=0)
+sheet = wb['Test']
+
+keys3 = np.zeros([(len(mess3)+1),(len(c)+3)],float)
+
+print('Форма матрицы док-терм:')
+print(str(keys3.shape))
+
+i = 1
+for x in c:
+  value = str(x)
+
+  cell = sheet.cell(row=1, column=i) #ВЫВОД КЛЮЧЕЙ
+  cell.value  = value
+
+  i = i + 1
+
+d1.clear()
+d2.clear()
+j = 3
+for y in mess3:
+  j = j + 1
+  i = 1
+  sum = 0
+  for x in c:
+    sum += y.count(x)
+    value = y.count(x)
+    cell = sheet.cell(row=j, column=i)
+    cell.value = value
+    keys3[j-4, i-1] = y.count(x)
+    i = i + 1
+
+  value = str(sum)
+  cell = sheet.cell(row=j, column=i)
+  cell.value = value
+
+print('Форма матрицы док-терм 2:')
+print(str(keys3.shape))
+print(keys3)
+
+#SVD GO
+#U, s, VT = svd(keys3, full_matrices=True)
+
+#print(str(U.shape))
+#print(str(s.shape))
+#print(str(VT.shape))
+
+#Sigma = np.zeros((U.shape[1], VT.shape[0]))
+#np.fill_diagonal(Sigma, s)
+#print(str(Sigma))
+
+#print(str(Sigma.shape))
+
+#keys3 = U @ Sigma @ VT
+#keys3 = U[:, :50] @ np.diag(s[:50]) @ VT[:50, :]
+#print(str(keys3.shape))
+#print(keys3)
+
+#SVD end
+
+# заполнение файла excel
+j = 3
+for y in mess3:
+  j = j + 1
+  i = 1
+  sum = 0
+  for x in c:
+    sum += keys3[j-4, i-1]
+    value = keys3[j-4, i-1]
+    cell = sheet.cell(row=j, column=i)
+    cell.value = value
+    i = i + 1
+  
+  value = str(sum)
+  cell = sheet.cell(row=j, column=i)
+  cell.value = value
+  print(value) #ЭТО ПРИЗНАК ТЕМЫ
+
+  #СЧИТАЕТСЯ ФОРМУЛА
+k = j
+i = 0
+for x in c:
+  j = 0
+  value = str(keys2[-1,i]) #вывод весов ключей
+  cell  = sheet.cell(row=k + 2, column=i+1)
+  cell.value = value
+
+  cell_ = sheet_.cell(row=i + 1, column=2)
+  cell_.value = value
+
+  value = str(keys2[j, i])
+  cell_ = sheet_.cell(row=i + 1,column=3)
+  cell_.value = value
+
+  for y in mess3:
+    keys3[j, -2] = keys3[j, -2] + keys3[j, i] * keys2[-1, i]
+    value = str(keys3[j, - 2])
+    cell = sheet.cell(row=j + 4, column=(len(c))+2)
+    cell.value = value
+    j = j + 1
+  i = i + 1
+j = 0
+
+
+
+for x in mess3:
+  keys3[j, -1] = 1/(1+math.exp(-max(keys3[:, -2])*keys3[j, -2]))
+  value = str(keys3[j, -1])
+
+  sell = sheet.cell(row=j + 4, column=(len(c)) + 3)
+  cell.value = value
+  j = j + 1
+
+wb.save('content/SD2021.xlsx')
+wb_.save('content/SD2020.xlsx')
+
+print(mess2[0])
+print(word_counts[0])
+
+for x in c: #mess2[0] - "ЭТО ЗАЯВКИ В ВИДЕ СПИСКА"
+  if mess2[0].count(x) != 0:
+    print(str(mess2[0].count(x)) + "     " + x)
+print(str(i))
+print(str(j))
+print(str(len(mess2)))
+print(str(max(keys3[:, -2])))
