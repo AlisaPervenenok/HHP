@@ -4,11 +4,8 @@ from array import *
 import openpyxl
 import xlrd
 import numpy as np
-import math
-from matplotlib import pyplot as plt
 from collections import defaultdict
 from collections import Counter
-
 
 class Porter:
 	PERFECTIVEGROUND =  re.compile(u"((ив|ивши|ившись|ыв|ывши|ывшись)|((?<=[ая])(в|вши|вшись)))$")
@@ -73,284 +70,205 @@ class Porter:
 		
 	stem=staticmethod(stem)
 
-
-
-stopwords = [a for a in punctuation]
-stopwords.append('«')
-stopwords.append('»')
-stopwords2 = ['в', 'не', 'по', 'на', 'прош', 'и', 'при', 'с', 'добр', 'ден', 'для', 'к', 'нет', 'эт', 'как', 'из', 'о', 'у', 'а', 'от', ' ', 'ил', 'во', 'он', 'что', 'то', 'так', 'но', 'спасиб',]
-rb = xlrd.open_workbook('content/Data0406_.xls', formatting_info=True)
-sheet = rb.sheet_by_index(0)
-a = []
-b = []
-c = []
-d1 = [] #сообщения
-d2 = [] #ключи
-d3 = []
-keys = []
-mess = []
+class Matcher_topics:
+  stopwords = [a for a in punctuation]
+  stopwords.append('«')
+  stopwords.append('»')
+  stopwords2 = ['в', 'не', 'по', 'на', 'прош', 'и', 'при', 'с', 'добр', 'ден', 'для', 'к', 'нет', 'эт', 'как', 'из', 'о', 'у', 'а', 'от', ' ', 'ил', 'во', 'он', 'что', 'то', 'так', 'но', 'спасиб',]
+  rb = xlrd.open_workbook('content/Data0406_.xls', formatting_info=True)
+  sheet = rb.sheet_by_index(0)
+  a = []
+  b = []
+  c = []
+  d1 = [] #сообщения
+  d2 = [] #ключи
+  d3 = []
+  keys = []
+  mess = []
 
 #Формирование ключей из заявок за 3 мес
-keys2 = np.array([[],[]], float)
-keys3 = np.array([[],[]], float)
-keys4 = np.array([[],[]], float)
-mess2 = [] #список с заявками за 3 мес по нужному ИТ-реш
-mess3 = [] #список заявок ВСЕГО за три мес, поступивших на ИТ-реш
-
-mess_one = []
-k = 0
-for rownum in range(sheet.nrows):
-  row = sheet.row_values(rownum)
-  for c_el in row:
-    #print(c_el.split())
-    a.extend(c_el.split())
-    mess_one.extend(c_el.split())
-  mess2.append(mess_one)
-  k = k + 1
-  mess_one = []
-for y in mess2:
-  d3.append(Porter.stem_list(y))
-mess2.clear()
-mess2.extend(d3)
-d3.clear()
-
-a.sort()
-print(a)
-print(stopwords)
-for slovo in a:
-  b.append(Porter.stem(slovo))
-# СТОП СЛОВА
-for stopw2 in stopwords2:
-  while b.count(stopw2) != 0:
-    b.remove(stopw2)
-
-#Формирование ключей и весов
-
-i = 1
-j = 0
-wb_ = openpyxl.Workbook()
-ws_ = wb_.create_sheet(title = 'Test', index=0)
-sheet_ = wb_['Test']
-
-
-for x in b:
-  if c.count(x) == 0 and b.count(x) > 2 and len(x) > 1:
-    c.append(x)
-
-    value = str(b.count(x))
-    cell = sheet_.cell(row=i, column=1)
-    cell.value = value
-
-    value = str(mess2[1].count(x))
-    vell = sheet_.cell(row=i, column=3)
-    cell.value = value
-
-    value = str(x)
-    cell = sheet_.cell(row=i, column=4)
-    cell.value = value
-    i = i + 1
-
-wb_.save('content/SD2020.xlsx')
-
-
-#создать словаль
-word_counts = defaultdict(int) #int() возвращает 0
-for word in b:
-  word_counts[word] += 1
-#word_counts.items()
-word_counts2 = {key: val for key, val in word_counts.items() if val > 1}
-
-myList = word_counts2.items()
-myList = sorted(myList)
-#x, y = zip(*myList)
-
-
-
-print(word_counts)
-
-
-#Лучший вариант подсчета количества появлений слов
-for y in mess2: #список сообщений
-  word_counts = Counter(y)
-
-keys2 = np.zeros([(len(mess2)+1),(len(c)+3)],float)
-print(str(keys2.shape))
-d1 = []
-j = 3
-for y in mess2: #список сообщений
-  j = j + 1
-  i = 1
-  sum = 0
-
-  for x in c: #список всех стем
-    d2.append(y.count(x))
-    sum += y.count(x)
-
-    keys2[j-4, i-1] = y.count(x)
-    i = i + 1
-
-  keys2[j-4, i-1] = sum
-
-  d2.append(sum)
-  d1.append(d2)
-  d2.clear()
-
-k = j
-i = 0
-
-for x in c:
-  VAL = np.vstack((keys2[:,i],keys2[:,(len(c))]))
-  R_xy = np.corrcoef(VAL)
-  keys2[-1,i] = R_xy[1,0] #ЗАПОЛНЕНИЕ ВЕСОВ
-    #необходимо удалять ключи, в которых отрицательная корреляция
-  i = i + 1
-j = 0
-
-#ФОРМИРОВАНИЕ СООБЩЕНИЙ, МАТРИЦЫ, И ФОРМУЛЫ
-
-rb = xlrd.open_workbook('content/Messages.xls', formatting_info=True)
-sheet = rb.sheet_by_index(0)
-
-mess3.clear()
-mess_one.clear()
-k = 0
-for rownum in range(sheet.nrows):
-  row = sheet.row_values(rownum)
-  for c_el in row:
-    mess_one.extend(c_el.split())
-  mess3.append(mess_one)
-  k = k + 1
+  keys2 = np.array([[],[]], float)
+  keys3 = np.array([[],[]], float)
+  keys4 = np.array([[],[]], float)
+  mess2 = [] #список с заявками за 3 мес по нужному ИТ-реш
+  mess3 = [] #список заявок ВСЕГО за три мес, поступивших на ИТ-реш
   mess_one = []
 
-for y in mess3:
-  d3.append(Porter.stem_list(y))
-mess3.clear()
-mess3.extend(d3)
+  def __init__(self):
+      k = 0
+      for rownum in range(self.sheet.nrows):
+        row = self.sheet.row_values(rownum)
+        for c_el in row:
+          self.a.extend(c_el.split())
+          self.mess_one.extend(c_el.split())
+        self.mess2.append(self.mess_one)
+        k = k + 1
+        self.mess_one = []
+      for y in self.mess2:
+        self.d3.append(Porter.stem_list(y))
+      self.mess2.clear()
+      self.mess2.extend(self.d3)
+      self.d3.clear()
 
-wb = openpyxl.Workbook()
-ws = wb.create_sheet(title = 'Test', index=0)
-sheet = wb['Test']
+      self.a.sort()
 
-keys3 = np.zeros([(len(mess3)+1),(len(c)+3)],float)
+      for slovo in self.a:
+        self.b.append(Porter.stem(slovo))
+      # СТОП СЛОВА
+      for stopw2 in self.stopwords2:
+        while self.b.count(stopw2) != 0:
+          self.b.remove(stopw2)
 
-print('Форма матрицы док-терм:')
-print(str(keys3.shape))
+      #Формирование ключей и весов
 
-i = 1
-for x in c:
-  value = str(x)
+      i = 1
+      j = 0
+      wb_ = openpyxl.Workbook()
+      wb_.create_sheet(title = 'Test', index=0)
+      sheet_ = wb_['Test']
 
-  cell = sheet.cell(row=1, column=i) #ВЫВОД КЛЮЧЕЙ
-  cell.value  = value
+      for x in self.b:
+        if self.c.count(x) == 0 and self.b.count(x) > 2 and len(x) > 1:
+          self.c.append(x)
 
-  i = i + 1
+          value = str(self.b.count(x))
+          cell = sheet_.cell(row=i, column=1)
+          cell.value = value
 
-d1.clear()
-d2.clear()
-j = 3
-for y in mess3:
-  j = j + 1
-  i = 1
-  sum = 0
-  for x in c:
-    sum += y.count(x)
-    value = y.count(x)
-    cell = sheet.cell(row=j, column=i)
-    cell.value = value
-    keys3[j-4, i-1] = y.count(x)
-    i = i + 1
+          value = str(self.mess2[1].count(x))
+          sheet_.cell(row=i, column=3)
+          cell.value = value
 
-  value = str(sum)
-  cell = sheet.cell(row=j, column=i)
-  cell.value = value
+          value = str(x)
+          cell = sheet_.cell(row=i, column=4)
+          cell.value = value
+          i = i + 1
 
-print('Форма матрицы док-терм 2:')
-print(str(keys3.shape))
-print(keys3)
+      wb_.save('content/SD2020.xlsx')
 
-#SVD GO
-#U, s, VT = svd(keys3, full_matrices=True)
+      #создать словаль
+      word_counts = defaultdict(int) #int() возвращает 0
+      for word in self.b:
+        word_counts[word] += 1
 
-#print(str(U.shape))
-#print(str(s.shape))
-#print(str(VT.shape))
+      word_counts2 = {key: val for key, val in word_counts.items() if val > 1}
 
-#Sigma = np.zeros((U.shape[1], VT.shape[0]))
-#np.fill_diagonal(Sigma, s)
-#print(str(Sigma))
+      myList = word_counts2.items()
+      myList = sorted(myList)
 
-#print(str(Sigma.shape))
+      #Лучший вариант подсчета количества появлений слов
+      for y in self.mess2: #список сообщений
+        word_counts = Counter(y)
 
-#keys3 = U @ Sigma @ VT
-#keys3 = U[:, :50] @ np.diag(s[:50]) @ VT[:50, :]
-#print(str(keys3.shape))
-#print(keys3)
+      keys2 = np.zeros([(len(self.mess2)+1),(len(self.c)+3)],float)
 
-#SVD end
+      d1 = []
+      j = 3
+      for y in self.mess2: #список сообщений
+        j = j + 1
+        i = 1
+        sum = 0
 
-# заполнение файла excel
-j = 3
-for y in mess3:
-  j = j + 1
-  i = 1
-  sum = 0
-  for x in c:
-    sum += keys3[j-4, i-1]
-    value = keys3[j-4, i-1]
-    cell = sheet.cell(row=j, column=i)
-    cell.value = value
-    i = i + 1
-  
-  value = str(sum)
-  cell = sheet.cell(row=j, column=i)
-  cell.value = value
-  print(value) #ЭТО ПРИЗНАК ТЕМЫ
+        for x in self.c: #список всех стем
+          self.d2.append(y.count(x))
+          sum += y.count(x)
 
-  #СЧИТАЕТСЯ ФОРМУЛА
-k = j
-i = 0
-for x in c:
-  j = 0
-  value = str(keys2[-1,i]) #вывод весов ключей
-  cell  = sheet.cell(row=k + 2, column=i+1)
-  cell.value = value
+          keys2[j-4, i-1] = y.count(x)
+          i = i + 1
 
-  cell_ = sheet_.cell(row=i + 1, column=2)
-  cell_.value = value
+        keys2[j-4, i-1] = sum
 
-  value = str(keys2[j, i])
-  cell_ = sheet_.cell(row=i + 1,column=3)
-  cell_.value = value
+        self.d2.append(sum)
+        d1.append(self.d2)
+        self.d2.clear()
 
-  for y in mess3:
-    keys3[j, -2] = keys3[j, -2] + keys3[j, i] * keys2[-1, i]
-    value = str(keys3[j, - 2])
-    cell = sheet.cell(row=j + 4, column=(len(c))+2)
-    cell.value = value
-    j = j + 1
-  i = i + 1
-j = 0
+      k = j
+      i = 0
 
+      for x in self.c:
+        VAL = np.vstack((keys2[:,i],keys2[:,(len(self.c))]))
+        R_xy = np.corrcoef(VAL)
+        keys2[-1,i] = R_xy[1,0] #ЗАПОЛНЕНИЕ ВЕСОВ
+          #необходимо удалять ключи, в которых отрицательная корреляция
+        i = i + 1
+      j = 0
 
+  def matching_topic(self, message):
+    #ФОРМИРОВАНИЕ СООБЩЕНИЙ, МАТРИЦЫ, И ФОРМУЛЫ
 
-for x in mess3:
-  keys3[j, -1] = 1/(1+math.exp(-max(keys3[:, -2])*keys3[j, -2]))
-  value = str(keys3[j, -1])
+    # rb = xlrd.open_workbook('content/Messages.xls', formatting_info=True)
+    # sheet = rb.sheet_by_index(0)
 
-  sell = sheet.cell(row=j + 4, column=(len(c)) + 3)
-  cell.value = value
-  j = j + 1
+    self.mess3.clear()
+    self.mess_one.clear()
 
-wb.save('content/SD2021.xlsx')
-wb_.save('content/SD2020.xlsx')
+    self.mess3.append(message.split())
 
-print(mess2[0])
-print(word_counts[0])
+    # k = 0
+    # for rownum in range(sheet.nrows):
+    #   row = sheet.row_values(rownum)
+    #   for c_el in row:
+    #     mess_one.extend(c_el.split())
+    #   mess3.append(mess_one)
+    #   k = k + 1
+    #   mess_one = []
 
-for x in c: #mess2[0] - "ЭТО ЗАЯВКИ В ВИДЕ СПИСКА"
-  if mess2[0].count(x) != 0:
-    print(str(mess2[0].count(x)) + "     " + x)
-print(str(i))
-print(str(j))
-print(str(len(mess2)))
-print(str(max(keys3[:, -2])))
+    for y in self.mess3:
+      self.d3.append(Porter.stem_list(y))
+    self.mess3.clear()
+    self.mess3.extend(self.d3)
+
+    wb = openpyxl.Workbook()
+    wb.create_sheet(title = 'Test', index=0)
+    sheet = wb['Test']
+
+    keys3 = np.zeros([(len(self.mess3)+1),(len(self.c)+3)],float)
+
+    i = 1
+    for x in self.c:
+      value = str(x)
+
+      cell = sheet.cell(row=1, column=i) #ВЫВОД КЛЮЧЕЙ
+      cell.value  = value
+
+      i = i + 1
+
+    self.d1.clear()
+    self.d2.clear()
+    j = 3
+    for y in self.mess3:
+      j = j + 1
+      i = 1
+      sum = 0
+      for x in self.c:
+        sum += y.count(x)
+        value = y.count(x)
+        cell = sheet.cell(row=j, column=i)
+        cell.value = value
+        keys3[j-4, i-1] = y.count(x)
+        i = i + 1
+
+      value = str(sum)
+      cell = sheet.cell(row=j, column=i)
+      cell.value = value
+
+    # заполнение файла excel
+    j = 3
+    for y in self.mess3:
+      j = j + 1
+      i = 1
+      sum = 0
+      for x in self.c:
+        sum += keys3[j-4, i-1]
+        value = keys3[j-4, i-1]
+        cell = sheet.cell(row=j, column=i)
+        cell.value = value
+        i = i + 1
+      
+      value = str(sum)
+      cell = sheet.cell(row=j, column=i)
+      cell.value = value
+
+      self.d3.clear()
+
+      return value #ЭТО ПРИЗНАК ТЕМЫ

@@ -5,12 +5,13 @@ from pywebio import start_server
 from pywebio.input import *
 from pywebio.output import *
 from pywebio.session import run_async, run_js
+from NLP_prod import Matcher_topics
 
 import asyncio
 
 chat_msgs = []
 MAX_MESSAGE_COUNT = 100
-
+matcher = Matcher_topics()
 
 async def main():
     global chat_msgs
@@ -36,9 +37,11 @@ async def main():
         # chat_msgs.append((botname, data['msg'])) #необходим для теста эхо
         #get_topic_task = run_async(get_topic(botname, msg_box, data['msg']))
         #get_search_task = run_async(get_search(botname, msg_box, data['msg']))
-        get_weather_task = run_async(get_weather("botname", msg_box, data['msg']))
+        #get_weather_task = run_async(get_weather("botname", msg_box, data['msg']))
+        get_matching_task = run_async(matching_topic(msg_box, data['msg']))
 
-    get_weather_task.close()
+    #get_weather_task.close()
+    get_matching_task.close()
     toast("Вы вышли из чата!")
 
     put_buttons(["Перезайти"], onclick=lambda btn: run_js('window.location.reload()'))
@@ -85,6 +88,13 @@ async def get_weather(botname1, msg_box, search_str):
         msg_box.append(put_markdown(f"`{botname1}`: возможно вы искали погоду: \" {data.get('name')}:  {data.get('main').get('temp')} °C \" "))
     except Exception as e:
         msg_box.append(put_markdown(f"`{botname1}`: погоду не нашёл, и вот в чём причина: \" {e} \" "))
+        pass
+
+async def matching_topic(msg_box, message):
+    try:
+        msg_box.append(matcher.matching_topic(message))
+    except Exception as e:
+        msg_box.append(put_markdown(f"Ошибка: \" {e} \" "))
         pass
 
 if __name__ == "__main__":
