@@ -344,13 +344,11 @@ for x in mess3:
 wb.save('/content/SD2021.xlsx')
 wb_.save('/content/SD2020.xlsx')
 
-print(mess2[0])
-print(word_counts[0])
+MessFromUser = 70 #- сообщение от пользователя
 
-for x in c: #mess2[0] - "ЭТО ЗАЯВКИ В ВИДЕ СПИСКА"
-  if mess2[0].count(x) != 0:
-    print(str(mess2[0].count(x)) + "     " + x)
-print(str(i))
-print(str(j))
-print(str(len(mess2)))
-print(str(max(keys3[:, -2])))
+print(mess3[MessFromUser])
+#print(word_counts[0])
+
+for x in c:  # mess2[0] - "ЭТО ЗАЯВКИ В ВИДЕ СПИСКА"
+    if mess3[MessFromUser].count(x) != 0:
+        print(str(mess3[MessFromUser].count(x)) + "     " + x)
