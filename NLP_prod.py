@@ -79,7 +79,7 @@ stopwords = [a for a in punctuation]
 stopwords.append('«')
 stopwords.append('»')
 stopwords2 = ['в', 'не', 'по', 'на', 'прош', 'и', 'при', 'с', 'добр', 'ден', 'для', 'к', 'нет', 'эт', 'как', 'из', 'о', 'у', 'а', 'от', ' ', 'ил', 'во', 'он', 'что', 'то', 'так', 'но', 'спасиб',]
-rb = xlrd.open_workbook('/content/Data0406_.xls', formatting_info=True)
+rb = xlrd.open_workbook('content/Data0406_.xls', formatting_info=True)
 sheet = rb.sheet_by_index(0)
 a = []
 b = []
@@ -150,7 +150,7 @@ for x in b:
     cell.value = value
     i = i + 1
 
-wb_.save('/content/SD2020.xlsx')
+wb_.save('content/SD2020.xlsx')
 
 
 #создать словаль
@@ -208,7 +208,7 @@ j = 0
 
 #ФОРМИРОВАНИЕ СООБЩЕНИЙ, МАТРИЦЫ, И ФОРМУЛЫ
 
-rb = xlrd.open_workbook('/content/Messages.xls', formatting_info=True)
+rb = xlrd.open_workbook('content/Messages.xls', formatting_info=True)
 sheet = rb.sheet_by_index(0)
 
 mess3.clear()
@@ -341,8 +341,8 @@ for x in mess3:
   cell.value = value
   j = j + 1
 
-wb.save('/content/SD2021.xlsx')
-wb_.save('/content/SD2020.xlsx')
+wb.save('content/SD2021.xlsx')
+wb_.save('content/SD2020.xlsx')
 
 print(mess2[0])
 print(word_counts[0])
